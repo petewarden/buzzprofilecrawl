@@ -1,0 +1,94 @@
+BuzzProfileCrawl
+~~~~~~~~~~~~~~~~
+
+*************WARNING*****************
+By running this script you're using resources on Google's servers, so be respectful of their 
+commitment to an open and crawlable web. Check http://google.com/robots.txt at least once a week to
+ensure you're abiding by their site rules, don't fire too many requests at once, and make sure you
+supply a valid contact email so they can get in touch in case of problems.
+*************************************
+
+This script allows you to download public Google Profiles and extract structured information from
+the HTML. 
+
+To test it, go to the command line, cd to this folder and run
+
+./buzzprofilecrawl.php -f "testdata_*.txt" -e <email> -o <organization>
+
+where <email> and <organization> are replaced by your contact email address and company, so that
+Google can get in touch if your crawling causes any problems. You should see JSON arrays of
+information for each of the 20 users mentioned in the test data files. 
+
+The script fetches the HTML for the page from Google's servers, and then runs a set of regular
+expressions to extract the microformatted information for that user. The profiles mostly use hcard
+to help robots like us understand what the meaning of the different elements is.
+
+The output is in the form <userid><tab character><json data>, eg:
+
+106664725926862859359	{"user_name":"searchbrowser","name":"Pete Warden","portrait_url":"\/s2\/photos\/public\/AIbEiAIAAABDCN_Y_J-1nfe-XCILdmNhcmRfcGhvdG8qKDdkYTYyODgxMTAzYjg0OGUzODAzNjM1OTUxMzgxMWVhNjY3MzdlZDgwAUQ6MaRMKXz3oZLOOF-uOVBoUoqx","location":"Boulder, CO","location_born":"Cambridge, UK","employment_history":["Apple"],"education_history":["University of Manchester"],"links":["http:\/\/petewarden.typepad.com\/"],"title":"Software Engineer","organization":"Mailana Inc","location_history":["Dundee, Scotland","Los Angeles, CA"]}
+
+To do further processing on this information, redirect it to a file, eg:
+
+./buzzprofilecrawl.php É > output.txt
+
+*** Finding public profiles ***
+
+To use this to find public profiles, you'll need to download the sitemap files that together make
+up a directory of the profile urls. Go to http://www.google.com/robots.txt and look for the sitemap
+for the profiles, eg:
+
+Sitemap: http://www.gstatic.com/s2/sitemaps/profiles-sitemap.xml 
+
+Take the URL from that line, and download the sitemap file, eg:
+
+curl -O "http://www.gstatic.com/s2/sitemaps/profiles-sitemap.xml"
+
+You should now have an XML file that contains a list of the files that contain the URLs of the
+published public profiles, eg:
+
+<sitemapindex xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
+	<sitemap>
+		<loc>http://www.gstatic.com/s2/sitemaps/sitemap-000.txt</loc>
+		<lastmod>2009-10-08</lastmod>
+	</sitemap>
+É
+
+Finally you'll need to extract all of those sitemap URLs and download the files. For example, I do
+some simplistic RegEx parsing to create a script that calls CURL to grab them:
+
+echo '#!/bin/sh' > downloadmaps.sh
+sed -n 's/.*<loc>\(.*\)<\/loc>.*/curl -O "\1"/p' profiles-sitemap.xml >> downloadmaps.sh
+chmod +x downloadmaps.sh
+./downloadmaps.sh
+
+Once you've run that, you should now have a few hundred sitemap files containing URLs for user's
+profiles. You can then feed those into the crawler by running:
+
+./buzzprofilecrawl.php -f "sitemap-*.txt" -e <email> -o <organization>
+
+****************************
+ Licensed under the 2-clause (ie no advertising requirement) BSD license,
+ making it easy to reuse for commercial or GPL projects:
+ 
+ (c) Pete Warden <pete@petewarden.com> http://petewarden.typepad.com/ Jan 8th 2010
+ 
+ Redistribution and use in source and binary forms, with or without modification, are
+ permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this 
+      list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice, this 
+      list of conditions and the following disclaimer in the documentation and/or 
+      other materials provided with the distribution.
+   3. The name of the author may not be used to endorse or promote products derived 
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+OF SUCH DAMAGE.
